@@ -1,11 +1,11 @@
 package com.kickstarter.viewmodels
 
+import android.util.Log
 import android.util.Pair
 import androidx.annotation.NonNull
 import com.kickstarter.libs.Environment
 import com.kickstarter.libs.FragmentViewModel
 import com.kickstarter.libs.KSString
-import com.kickstarter.libs.rx.transformers.Transformers
 import com.kickstarter.libs.rx.transformers.Transformers.combineLatestPair
 import com.kickstarter.libs.utils.ObjectUtils
 import com.kickstarter.libs.utils.RewardUtils.isDigital
@@ -73,9 +73,12 @@ class BackingAddOnsFragmentViewModel {
         val inputs = this
         val outputs = this
 
-        private val pledgeDataAndReason = BehaviorSubject.create<Pair<PledgeData, PledgeReason>>()
+        private var pledgeDataAndReason = BehaviorSubject.create<Pair<PledgeData, PledgeReason>>()
         private val shippingRuleSelected = PublishSubject.create<ShippingRule>()
         private val shippingRulesAndProject = PublishSubject.create<Pair<List<ShippingRule>, Project>>()
+
+        private val shippingRules = PublishSubject.create<List<ShippingRule>>()
+        private val addOnsFromGraph = PublishSubject.create<List<Reward>>()
 
         private val showPledgeFragment = PublishSubject.create<Pair<PledgeData, PledgeReason>>()
         private val shippingSelectorIsGone = BehaviorSubject.create<Boolean>()
@@ -86,6 +89,8 @@ class BackingAddOnsFragmentViewModel {
         private val quantityPerId = PublishSubject.create<Pair<Int, Long>>()
         private val currentSelection: MutableMap<Long, Int> = mutableMapOf()
         private val isEnabledCTAButton = BehaviorSubject.create<Boolean>()
+
+        private val projectAndReward: Observable<Pair<Project, Reward>>
 
         private val apolloClient = this.environment.apolloClient()
         private val apiClient = environment.apiClient()
@@ -122,15 +127,10 @@ class BackingAddOnsFragmentViewModel {
 
             val reward = Observable.merge(rewardPledge, backingReward)
 
-            val projectAndReward = project
+            projectAndReward = project
                     .compose<Pair<Project, Reward>>(combineLatestPair(reward))
 
-            val shippingRules = projectAndReward
-                    .filter { isShippable(it.second) }
-                    .distinctUntilChanged()
-                    .switchMap<ShippingRulesEnvelope> { this.apiClient.fetchShippingRules(it.first, it.second).compose(Transformers.neverError()) }
-                    .map { it.shippingRules() }
-                    .share()
+            loadShippingRulesAndAddons()
 
             val backingShippingRule = backing
                     .compose<Pair<Backing, List<ShippingRule>>>(combineLatestPair(shippingRules))
@@ -161,12 +161,6 @@ class BackingAddOnsFragmentViewModel {
                     .map { it.addOns()?.toList() }
                     .filter { ObjectUtils.isNotNull(it) }
                     .map { requireNotNull(it) }
-
-            val addOnsFromGraph = project
-                    .switchMap { pj -> this.apolloClient.getProjectAddOns(pj.slug()?.let { it }?: "") }
-                    .compose(bindToLifecycle())
-                    .filter { ObjectUtils.isNotNull(it) }
-                    .share()
 
             val combinedList = addOnsFromBacking
                    .compose<Pair<List<Reward>, List<Reward>>>(combineLatestPair(addOnsFromGraph))
@@ -345,6 +339,28 @@ class BackingAddOnsFragmentViewModel {
                     }?: emptyList()
 
             return idLocations.contains(rule.location().id())
+        }
+
+        private fun loadShippingRulesAndAddons() {
+            projectAndReward
+                    .filter { isShippable(it.second) }
+                    .distinctUntilChanged()
+                    .switchMap<ShippingRulesEnvelope> {
+                        this.apiClient.fetchShippingRules(it.first, it.second).doOnError {
+                            // TODO: Send message to the fragment
+                            Log.d("HELLOWORLD", "API ERROR")
+                        }
+                    }
+                    .map { it.shippingRules() }
+                    .subscribe(shippingRules)
+
+            projectAndReward
+                    .switchMap { pj -> this.apolloClient.getProjectAddOns(pj.first.slug()?.let { it }?: "") }
+                    .compose(bindToLifecycle())
+                    .filter { ObjectUtils.isNotNull(it) }
+                    .subscribe(addOnsFromGraph)
+
+            // TODO: Find a way to zip/combine the two streams???
         }
 
         // - Inputs
