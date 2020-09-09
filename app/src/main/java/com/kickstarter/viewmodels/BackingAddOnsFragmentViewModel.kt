@@ -91,6 +91,8 @@ class BackingAddOnsFragmentViewModel {
         private val shippingRulesAndProject = PublishSubject.create<Pair<List<ShippingRule>, Project>>()
 
         private val projectAndReward: Observable<Pair<Project, Reward>>
+        private val retryButtonPressed = PublishSubject.create<Void>()
+
         private val showPledgeFragment = PublishSubject.create<Pair<PledgeData, PledgeReason>>()
         private val shippingSelectorIsGone = BehaviorSubject.create<Boolean>()
         private val addOnsListFiltered = PublishSubject.create<Triple<ProjectData, List<Reward>, ShippingRule>>()
@@ -296,26 +298,78 @@ class BackingAddOnsFragmentViewModel {
                         this.lake.trackAddOnsContinueButtonClicked(it.first)
                         this.showPledgeFragment.onNext(it)
                     }
-        }
 
-        private fun loadShippingRulesAndAddons() {
+            /// Added
             projectAndReward
-                    .filter { isShippable(it.second) }
-                    .distinctUntilChanged()
+                    .compose<Pair<Project, Reward>>(takeWhen(this.retryButtonPressed))
+                    .compose(bindToLifecycle())
                     .switchMap<ShippingRulesEnvelope> {
-                        this.apiClient.fetchShippingRules(it.first, it.second).doOnError {
+                        this.apiClient.fetchShippingRules(it.first, it.second).doOnCompleted {
                             // TODO: Send message to the fragment
                             Log.d("HELLOWORLD", "API ERROR")
+                            this.showErrorDialog.onNext(true)
                         }
                     }
                     .map { it.shippingRules() }
                     .subscribe(shippingRules)
 
+
             projectAndReward
-                    .switchMap { pj -> this.apolloClient.getProjectAddOns(pj.first.slug()?.let { it }?: "") }
+                    .compose<Pair<Project, Reward>>(takeWhen(this.retryButtonPressed))
+                    .compose(bindToLifecycle())
+                    .switchMap {
+                        this.apolloClient.getProjectAddOns(it.first.slug()?.let { it }?: "").doOnError {
+                            // TODO: Send message to the fragment
+                            Log.d("HELLOWORLD", "API ERROR")
+                            this.showErrorDialog.onNext(true)
+                        }
+                    }
+                    .filter { ObjectUtils.isNotNull(it) }
+                    .subscribe(addOnsFromGraph)
+        }
+
+        // Sets the project and reward stream?
+        private fun loadShippingRulesAndAddons() {
+            projectAndReward
+                    .filter { isShippable(it.second) }
+                    .distinctUntilChanged()
+                    .switchMap<ShippingRulesEnvelope> {
+                        this.apiClient.fetchShippingRules(it.first, it.second).doOnCompleted {
+                            // TODO: Send message to the fragment
+                            Log.d("HELLOWORLD", "API ERROR")
+                            this.showErrorDialog.onNext(true)
+                        }
+                    }
+                    .map { it.shippingRules() }
+                    .subscribe(shippingRules)
+
+            val projectR = projectAndReward
+                    .filter { isShippable(it.second) }
+
+            applySomething(projectR)
+
+            projectAndReward
+                    .switchMap {
+                        this.apolloClient.getProjectAddOns(it.first.slug()?.let { it }?: "").doOnError {
+                            // TODO: Send message to the fragment
+                            Log.d("HELLOWORLD", "API ERROR")
+                            this.showErrorDialog.onNext(true)
+                        }
+                    }
                     .compose(bindToLifecycle())
                     .filter { ObjectUtils.isNotNull(it) }
                     .subscribe(addOnsFromGraph)
+        }
+
+        private fun applySomething(observable: Observable<Pair<Project, Reward>>) {
+            observable
+                    .switchMap<ShippingRulesEnvelope> {
+                        this.apiClient.fetchShippingRules(it.first, it.second).doOnCompleted {
+                            // TODO: Send message to the fragment
+                            Log.d("HELLOWORLD", "API ERROR")
+                            this.showErrorDialog.onNext(true)
+                        }
+                    }
         }
 
         private fun isDifferentSelection(backedList: List<Reward>): Boolean {
@@ -409,7 +463,7 @@ class BackingAddOnsFragmentViewModel {
         override fun shippingRuleSelected(shippingRule: ShippingRule) = this.shippingRuleSelected.onNext(shippingRule)
         override fun continueButtonPressed() = this.continueButtonPressed.onNext(null)
         override fun quantityPerId(quantityPerId: Pair<Int, Long>) = this.quantityPerId.onNext(quantityPerId)
-        override fun retryButtonPressed() {}
+        override fun retryButtonPressed() = this.retryButtonPressed.onNext(null)
 
         // - Outputs
         @NonNull
