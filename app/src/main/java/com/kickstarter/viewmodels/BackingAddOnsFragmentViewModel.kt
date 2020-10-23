@@ -225,7 +225,6 @@ class BackingAddOnsFragmentViewModel {
                         this.shippingRuleSelected.onNext(it)
                     }
 
-
             Observable
                     .combineLatest(this.retryButtonPressed.startWith(false), this.projectAndReward) { _, projectAndReward ->
                         return@combineLatest this.apiClient

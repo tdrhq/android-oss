@@ -9,6 +9,8 @@ import java.util.Arrays;
 
 import androidx.annotation.NonNull;
 
+import static java.util.Collections.emptyList;
+
 public final class RewardFactory {
   public static final DateTime ESTIMATED_DELIVERY = DateTime.parse("2019-03-26T19:26:09Z");
   private RewardFactory() {}
@@ -21,9 +23,35 @@ public final class RewardFactory {
             .build();
   }
 
+  public static @NonNull Reward digitalAddOn() {
+    return RewardFactory.addOn().toBuilder()
+            .shippingPreferenceType(Reward.ShippingPreference.NONE) // - Reward from GraphQL use this field
+            .shippingType(Reward.SHIPPING_TYPE_NO_SHIPPING) // - // - Reward from V1 use this field
+            .shippingRules(emptyList())
+            .build();
+  }
+
   public static @NonNull Reward rewardHasAddOns() {
     return reward().toBuilder()
             .hasAddons(true)
+            .build();
+  }
+
+  public static @NonNull Reward rewardWithAddOnsUnrestricted() {
+    return RewardFactory.rewardHasAddOns().toBuilder()
+            .shippingType(Reward.ShippingPreference.UNRESTRICTED.name().toLowerCase())
+            .shippingPreferenceType(Reward.ShippingPreference.UNRESTRICTED) // - Reward from GraphQL use this field
+            .shippingPreference(Reward.ShippingPreference.UNRESTRICTED.name().toLowerCase()) // - Reward from V1 use this field.
+            .shippingType(Reward.SHIPPING_TYPE_ANYWHERE) // - Reward from V1 use this field to check if is Digital
+            .build();
+  }
+
+  public static @NonNull Reward digitalRewardWithAddOns() {
+    return reward().toBuilder()
+            .hasAddons(true)
+            .shippingType(Reward.ShippingPreference.NOSHIPPING.name().toLowerCase())
+            .shippingPreferenceType(Reward.ShippingPreference.NONE) // - Reward from GraphQL use this field
+            .shippingType(Reward.SHIPPING_TYPE_NO_SHIPPING) // - Reward from V1 use this field
             .build();
   }
 
