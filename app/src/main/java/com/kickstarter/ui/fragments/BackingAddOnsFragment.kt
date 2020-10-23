@@ -130,13 +130,12 @@ class BackingAddOnsFragment : BaseFragment<BackingAddOnsFragmentViewModel.ViewMo
         errorDialog.dismiss()
     }
 
-    private fun populateAddOns(projectDataAndAddOnList: Triple<ProjectData, List<Reward>, ShippingRule>) {
+    private fun populateAddOns(projectDataAndAddOnList: Pair<ProjectData, List<Reward>>) {
         val projectData = projectDataAndAddOnList.first
-        val selectedShippingRule = projectDataAndAddOnList.third
         val list = projectDataAndAddOnList
                 .second
                 .map {
-                    Triple(projectData, it, selectedShippingRule)
+                    Pair(projectData, it)
                 }.toList()
 
         backingAddonsAdapter.populateDataForAddOns(list)

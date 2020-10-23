@@ -1,9 +1,9 @@
 package com.kickstarter.ui.adapters
 
+import android.util.Pair
 import android.view.View
 import com.kickstarter.R
 import com.kickstarter.models.Reward
-import com.kickstarter.models.ShippingRule
 import com.kickstarter.ui.data.ProjectData
 import com.kickstarter.ui.viewholders.BackingAddOnViewHolder
 import com.kickstarter.ui.viewholders.EmptyViewHolder
@@ -30,7 +30,7 @@ class BackingAddOnsAdapter(private val viewListener: BackingAddOnViewHolder.View
         }
     }
 
-    fun populateDataForAddOns(rewards: List<Triple<ProjectData, Reward, ShippingRule>>) {
+    fun populateDataForAddOns(rewards: List<Pair<ProjectData, Reward>>) {
         setSection(SECTION_BACKING_ADD_ONS_CARD, rewards)
         notifyDataSetChanged()
     }

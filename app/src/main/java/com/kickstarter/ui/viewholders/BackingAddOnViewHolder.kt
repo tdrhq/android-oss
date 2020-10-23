@@ -9,7 +9,6 @@ import com.kickstarter.libs.rx.transformers.Transformers
 import com.kickstarter.libs.utils.RewardUtils
 import com.kickstarter.libs.utils.ViewUtils
 import com.kickstarter.models.Reward
-import com.kickstarter.models.ShippingRule
 import com.kickstarter.ui.adapters.RewardItemsAdapter
 import com.kickstarter.ui.data.ProjectData
 import com.kickstarter.viewmodels.BackingAddOnViewHolderViewModel
@@ -35,8 +34,7 @@ class BackingAddOnViewHolder(private val view: View, viewListener: ViewListener)
         setListenerForIncreaseButton()
         setListenerForAddButton()
 
-        this.viewModel.outputs
-                .description()
+        this.viewModel.outputs.description()
                 .compose(bindToLifecycle())
                 .subscribe {
                     this.view.add_on_description.text = it
@@ -71,7 +69,7 @@ class BackingAddOnViewHolder(private val view: View, viewListener: ViewListener)
                 .compose(bindToLifecycle())
                 .compose(Transformers.observeForUI())
                 .subscribe {
-                    this.view.add_on_minimum.text = "${it} "
+                    this.view.add_on_minimum.text = "$it "
                 }
 
         this.viewModel.outputs.conversionIsGone()
@@ -159,7 +157,7 @@ class BackingAddOnViewHolder(private val view: View, viewListener: ViewListener)
                 .compose(bindToLifecycle())
                 .compose(Transformers.observeForUI())
                 .subscribe { quantityPerId ->
-                    quantityPerId?.let { viewListener.quantityPerId(it) }
+                    quantityPerId?.let { this.viewListener.quantityPerId(it) }
                     val quantity = quantityPerId.first
                     this.view.decrease_quantity_add_on.isEnabled = (quantity != 0)
                     this.view.quantity_add_on.text = quantity.toString()
@@ -212,14 +210,14 @@ class BackingAddOnViewHolder(private val view: View, viewListener: ViewListener)
     }
 
     override fun bindData(data: Any?) {
-        if (data is (Triple<*, *, *>)) {
+        if (data is (Pair<*, *>)) {
             if (data.second is Reward) {
-                bindAddonsList(data as Triple<ProjectData, Reward, ShippingRule>)
+                bindAddonsList(data as Pair<ProjectData, Reward>)
             }
         }
     }
 
-    private fun bindAddonsList(projectDataAndAddOn: Triple<ProjectData, Reward, ShippingRule>) {
+    private fun bindAddonsList(projectDataAndAddOn: Pair<ProjectData, Reward>) {
         this.viewModel.inputs.configureWith(projectDataAndAddOn)
     }
 
