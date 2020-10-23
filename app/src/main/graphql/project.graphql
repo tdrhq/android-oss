@@ -20,7 +20,7 @@ query GetProjectBacking($slug: String!) {
 
 query GetProjectAddOns($slug: String!, $locationId: ID!) {
   project(slug: $slug) {
-    addOns {
+    addOns(forLocation: $locationId) {
       nodes {
         shippingRulesExpanded(forLocation: $locationId) {
           nodes {

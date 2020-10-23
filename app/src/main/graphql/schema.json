@@ -3365,6 +3365,16 @@
                   "defaultValue": null
                 },
                 {
+                  "name": "forLocation",
+                  "description": "Filters available add ons by given location",
+                  "type": {
+                    "kind": "SCALAR",
+                    "name": "ID",
+                    "ofType": null
+                  },
+                  "defaultValue": null
+                },
+                {
                   "name": "last",
                   "description": "Returns the last _n_ elements from the list.",
                   "type": {
