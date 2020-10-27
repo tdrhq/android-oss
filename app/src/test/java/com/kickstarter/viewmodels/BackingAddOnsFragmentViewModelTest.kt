@@ -271,16 +271,17 @@ class BackingAddOnsFragmentViewModelTest : KSRobolectricTestCase() {
     @Test
     fun givenBackedAddOns_whenUpdatingRewardReason_DisabledButton() {
         val shippingRule = ShippingRulesEnvelopeFactory.shippingRules()
-        val addOn = RewardFactory.addOn().toBuilder()
-                .shippingRules(shippingRule.shippingRules())
-                .shippingPreferenceType(Reward.ShippingPreference.UNRESTRICTED) // - Reward from GraphQL use this field
+        val addOn = RewardFactory.digitalAddOn().toBuilder()
                 .build()
         val addOn2 = addOn.toBuilder().id(8).build()
         val addOn3 = addOn.toBuilder().id(99).build()
         val listAddons = listOf(addOn, addOn2, addOn3)
         val listAddonsBacked = listOf(addOn2.toBuilder().quantity(2).build(), addOn3.toBuilder().quantity(1).build())
         val combinedList = listOf(addOn, addOn2.toBuilder().quantity(2).build(), addOn3.toBuilder().quantity(1).build())
-        val rw = RewardFactory.digitalRewardWithAddOns()
+        val rw = RewardFactory.rewardWithAddOnsUnrestricted()
+                .toBuilder()
+                .shippingRules(shippingRule.shippingRules())
+                .build()
         val project = ProjectFactory.project().toBuilder().rewards(listOf(rw)).build()
         // -Build the backing with location and list of AddOns
         val backing = BackingFactory.backing(project, UserFactory.user(), rw)
@@ -311,7 +312,9 @@ class BackingAddOnsFragmentViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.quantityPerId(Pair(1, addOn3.id()))
 
         this.isEnabledButton.assertValues(true, false)
-        this.addOnsList.assertValue(Pair(projectData, combinedList))
+        this.addOnsList.assertValues(
+                Pair(projectData, listAddons),
+                Pair(projectData, combinedList))
 
         this.lakeTest.assertValue("Add-Ons Page Viewed")
     }
@@ -367,7 +370,9 @@ class BackingAddOnsFragmentViewModelTest : KSRobolectricTestCase() {
         this.vm.inputs.quantityPerId(Pair(2, addOn2.id()))
 
         this.isEnabledButton.assertValues(true)
-        this.addOnsList.assertValues(Pair(projectData,combinedList))
+        this.addOnsList.assertValues(
+                Pair(projectData, listAddons),
+                Pair(projectData,combinedList))
 
         // - Always 0 first time, them summatory of all addOns quantity every time the list gets updated
         this.totalSelectedAddOns.assertValues(0, 7, 9)
@@ -434,61 +439,6 @@ class BackingAddOnsFragmentViewModelTest : KSRobolectricTestCase() {
 
         // - Always 0 first time, them summatory of all addOns quantity every time the list gets updated
         this.totalSelectedAddOns.assertValues(0)
-        this.lakeTest.assertValues("Add-Ons Page Viewed")
-    }
-
-    @Test
-    fun givenBackedAddOns_whenUpdatingRewardDigitalChooseAnotherRewardLimited_AddOnsListNotBacked() {
-        val shippingRule = ShippingRulesEnvelopeFactory.shippingRules()
-        val addOn = RewardFactory.rewardWithAddOnsUnrestricted().toBuilder()
-                .isAddOn(true)
-                .shippingRules(shippingRule.shippingRules())
-                .build()
-        val addOn2 = addOn.toBuilder().id(8).build()
-        val addOn3 = addOn.toBuilder().id(99).build()
-
-        val listAddons = listOf(addOn, addOn2, addOn3)
-        val listAddonsBacked = listOf(addOn2.toBuilder().quantity(2).build(), addOn3.toBuilder().quantity(1).build())
-
-        val backedRw = RewardFactory.digitalRewardWithAddOns()
-        val project = ProjectFactory.project()
-
-        // -Build the backing with location and list of AddOns
-        val backing = BackingFactory.backing(project, UserFactory.user(), backedRw)
-                .toBuilder()
-                .locationId(ShippingRuleFactory.usShippingRule().location().id())
-                .location(ShippingRuleFactory.usShippingRule().location())
-                .addOns(listAddonsBacked)
-                .build()
-
-        val backedProject = project.toBuilder()
-                .rewards(listOf(backedRw))
-                .backing(backing)
-                .build()
-
-        val newRw = RewardFactory.rewardWithAddOnsUnrestricted().toBuilder()
-                .shippingRules(shippingRule.shippingRules())
-                .build()
-        val projectData = ProjectDataFactory.project(backedProject, null, null)
-        val pledgeReason = PledgeFlowContext.forPledgeReason(PledgeReason.UPDATE_REWARD)
-        val config = ConfigFactory.configForUSUser()
-        val currentConfig = MockCurrentConfig()
-
-        currentConfig.config(config)
-        setUpEnvironment(buildEnvironmentWith(listAddons, shippingRule, currentConfig))
-
-        val bundle = Bundle()
-        bundle.putParcelable(ArgumentsKey.PLEDGE_PLEDGE_DATA, PledgeData.with(pledgeReason, projectData, newRw))
-        bundle.putSerializable(ArgumentsKey.PLEDGE_PLEDGE_REASON, PledgeReason.UPDATE_REWARD)
-        this.vm.arguments(bundle)
-
-        this.shippingSelectorIsGone.assertNoValues()
-        this.selectedShippingRule.assertValues(ShippingRuleFactory.emptyShippingRule(),shippingRule.shippingRules().first())
-        this.addOnsList.assertValues(Pair(projectData, listAddons))
-
-        // - Always 0 first time, them summatory of all addOns quantity every time the list gets updated
-        this.totalSelectedAddOns.assertValues(0)
-
         this.lakeTest.assertValues("Add-Ons Page Viewed")
     }
 
@@ -567,46 +517,6 @@ class BackingAddOnsFragmentViewModelTest : KSRobolectricTestCase() {
     }
 
     @Test
-    fun emptyState_whenNoAddOnsForShippingRule_shouldShowEmptyViewState() {
-        val shippingRuleAddOn = ShippingRuleFactory.germanyShippingRule()
-        val shippingRuleRw = ShippingRuleFactory.usShippingRule()
-        val addOn = RewardFactory.addOn().toBuilder()
-                .shippingRules(listOf(shippingRuleAddOn, shippingRuleAddOn, shippingRuleAddOn))
-                .shippingPreferenceType(Reward.ShippingPreference.RESTRICTED)
-                .shippingType(Reward.SHIPPING_TYPE_SINGLE_LOCATION)
-                .build()
-        val listAddons = listOf(addOn, addOn, addOn)
-
-        val config = ConfigFactory.configForUSUser()
-        val currentConfig = MockCurrentConfig()
-        currentConfig.config(config)
-
-        setUpEnvironment(buildEnvironmentWith(listAddons, ShippingRulesEnvelope.builder().shippingRules(listOf(shippingRuleRw)).build(), currentConfig))
-
-        val rw = RewardFactory.rewardHasAddOns().toBuilder()
-                .shippingType(Reward.ShippingPreference.RESTRICTED.name.toLowerCase())
-                .shippingRules(listOf(shippingRuleRw))
-                .shippingPreferenceType(Reward.ShippingPreference.RESTRICTED)
-                .shippingPreference(Reward.ShippingPreference.RESTRICTED.name.toLowerCase())
-                .build()
-
-        val project = ProjectFactory.project().toBuilder().rewards(listOf(rw)).build()
-        val projectData = ProjectDataFactory.project(project, null, null)
-        val pledgeReason = PledgeFlowContext.forPledgeReason(PledgeReason.PLEDGE)
-
-        val bundle = Bundle()
-        bundle.putParcelable(ArgumentsKey.PLEDGE_PLEDGE_DATA, PledgeData.with(pledgeReason, projectData, rw))
-        bundle.putSerializable(ArgumentsKey.PLEDGE_PLEDGE_REASON, PledgeReason.PLEDGE)
-        this.vm.arguments(bundle)
-
-        this.addOnsList.assertValue(Pair(projectData, emptyList()))
-        this.selectedShippingRule.assertValue(shippingRuleRw)
-        this.isEmptyState.assertValue(true)
-
-        this.lakeTest.assertValue("Add-Ons Page Viewed")
-    }
-
-    @Test
     fun emptyState_whenMatchingShippingRule_shouldNotShowEmptyState() {
         val shippingRuleAddOn = ShippingRuleFactory.usShippingRule()
         val shippingRuleRw = ShippingRuleFactory.usShippingRule()
@@ -665,9 +575,8 @@ class BackingAddOnsFragmentViewModelTest : KSRobolectricTestCase() {
         bundle.putSerializable(ArgumentsKey.PLEDGE_PLEDGE_REASON, PledgeReason.PLEDGE)
         this.vm.arguments(bundle)
 
-        // Two values -> two failed network calls
-        this.showErrorDialog.assertValues(true, true)
-        this.shippingSelectorIsGone.assertValues(true, true, true)
+        this.showErrorDialog.assertValues(true, true, true, true, true)
+        this.shippingSelectorIsGone.assertValues(true, true, true, true, true, true)
     }
 
     fun addOnsList_whenUnavailable_FilteredOut() {

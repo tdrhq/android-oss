@@ -115,7 +115,6 @@ class BackingAddOnViewHolderViewModelTest : KSRobolectricTestCase() {
 
         val addOn = RewardFactory.reward().toBuilder().isAddOn(true).rewardsItems(emptyList()).build()
 
-        val shippingRule = ShippingRuleFactory.usShippingRule()
         this.vm.inputs.configureWith(Pair(ProjectDataFactory.project(ProjectFactory.project()), addOn))
 
         this.vm.inputs.increaseButtonPressed()

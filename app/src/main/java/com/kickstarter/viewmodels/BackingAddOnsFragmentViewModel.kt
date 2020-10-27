@@ -83,10 +83,7 @@ class BackingAddOnsFragmentViewModel {
         private var pledgeDataAndReason = BehaviorSubject.create<Pair<PledgeData, PledgeReason>>()
         private val shippingRuleSelected = PublishSubject.create<ShippingRule>()
         private val shippingRulesAndProject = PublishSubject.create<Pair<List<ShippingRule>, Project>>()
-
-        private val projectAndReward: Observable<Pair<Project, Reward>>
         private val retryButtonPressed = BehaviorSubject.create<Boolean>()
-
         private val showPledgeFragment = PublishSubject.create<Pair<PledgeData, PledgeReason>>()
         private val shippingSelectorIsGone = BehaviorSubject.create<Boolean>()
         private val addOnsListFiltered = PublishSubject.create<Pair<ProjectData, List<Reward>>>()
@@ -94,26 +91,22 @@ class BackingAddOnsFragmentViewModel {
         private val showErrorDialog = BehaviorSubject.create<Boolean>()
         private val continueButtonPressed = BehaviorSubject.create<Void>()
         private val isEnabledCTAButton = BehaviorSubject.create<Boolean>()
-        private val apolloClient = this.environment.apolloClient()
-        private val apiClient = environment.apiClient()
-        private val currentConfig = environment.currentConfig()
-        val ksString: KSString = this.environment.ksString()
 
         // - Current addOns selection
         private val totalSelectedAddOns = BehaviorSubject.create(0)
         private val quantityPerId = PublishSubject.create<Pair<Int, Long>>()
         private val currentSelection = BehaviorSubject.create(mutableMapOf<Long, Int>())
 
+        private val apolloClient = this.environment.apolloClient()
+        private val apiClient = environment.apiClient()
+        private val currentConfig = environment.currentConfig()
+        val ksString: KSString = this.environment.ksString()
+
         init {
 
             val pledgeData = arguments()
                     .map { it.getParcelable(ArgumentsKey.PLEDGE_PLEDGE_DATA) as PledgeData? }
                     .ofType(PledgeData::class.java)
-
-            pledgeData
-                    .take(1)
-                    .compose(bindToLifecycle())
-                    .subscribe { this.lake.trackAddOnsPageViewed(it) }
 
             val pledgeReason = arguments()
                     .map { it.getSerializable(ArgumentsKey.PLEDGE_PLEDGE_REASON) as PledgeReason }
@@ -123,6 +116,9 @@ class BackingAddOnsFragmentViewModel {
 
             val project = projectData
                     .map { it.project() }
+                    .distinctUntilChanged { project1, project2 ->
+                        project1.id() == project2.id() && project1.isBacking == project2.isBacking
+                    }
 
             val rewardPledge = pledgeData
                     .map { it.reward() }
@@ -157,7 +153,7 @@ class BackingAddOnsFragmentViewModel {
 
             val reward = Observable.merge(rewardPledge, filteredBackingReward)
 
-            this.projectAndReward = project
+            val projectAndReward = project
                     .compose<Pair<Project, Reward>>(combineLatestPair(reward))
 
             // - If changing rewards do not emmit the backing information
@@ -215,20 +211,20 @@ class BackingAddOnsFragmentViewModel {
                     .switchMap { defaultShippingRule(it.first) }
 
             val shippingRule = getSelectedShippingRule(defaultShippingRule, isSameReward, backingShippingRule, reward)
-
-            shippingRule
                     .distinctUntilChanged { rule1, rule2 ->
                         rule1.location().id() == rule2.location().id() && rule1.cost() == rule2.cost()
                     }
+
+            shippingRule
                     .compose(bindToLifecycle())
                     .subscribe {
                         this.shippingRuleSelected.onNext(it)
                     }
 
             Observable
-                    .combineLatest(this.retryButtonPressed.startWith(false), this.projectAndReward) { _, projectAndReward ->
+                    .combineLatest(this.retryButtonPressed.startWith(false), projectAndReward) { _, projAndReward ->
                         return@combineLatest this.apiClient
-                                .fetchShippingRules(projectAndReward.first, projectAndReward.second)
+                                .fetchShippingRules(projAndReward.first, projAndReward.second)
                                 .doOnError {
                                     this.showErrorDialog.onNext(true)
                                     this.shippingSelectorIsGone.onNext(true)
@@ -301,6 +297,11 @@ class BackingAddOnsFragmentViewModel {
                         this.lake.trackAddOnsContinueButtonClicked(it.first)
                         this.showPledgeFragment.onNext(it)
                     }
+
+            pledgeData
+                    .take(1)
+                    .compose(bindToLifecycle())
+                    .subscribe { this.lake.trackAddOnsPageViewed(it) }
         }
 
         /**
@@ -547,16 +548,6 @@ class BackingAddOnsFragmentViewModel {
                         shippingRules.firstOrNull { it.location().country() == countryCode }
                                 ?: shippingRules.first()
                     }
-        }
-
-        private fun containsLocation(rule: ShippingRule, reward: Reward): Boolean {
-            val idLocations = reward
-                    .shippingRules()
-                    ?.map {
-                        it.location().id()
-                    } ?: emptyList()
-
-            return idLocations.contains(rule.location().id())
         }
 
         // - Inputs
