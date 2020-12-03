@@ -6,7 +6,7 @@ import com.kickstarter.libs.Build;
 import com.kickstarter.libs.CurrentUserType;
 import com.kickstarter.libs.InternalToolsType;
 import com.kickstarter.libs.utils.WebUtils;
-import com.kickstarter.services.KSUri;
+import com.kickstarter.libs.utils.extensions.UriExt;
 
 import java.io.IOException;
 
@@ -58,7 +58,7 @@ public final class WebRequestInterceptor implements Interceptor {
   }
 
   private boolean shouldIntercept(final @NonNull Request request) {
-    return KSUri.isWebUri(Uri.parse(request.url().toString()), this.endpoint);
+    return UriExt.isWebUri(Uri.parse(request.url().toString()), this.endpoint);
   }
 
   private boolean shouldAddBasicAuthorizationHeader(final @NonNull Request request) {
@@ -66,6 +66,6 @@ public final class WebRequestInterceptor implements Interceptor {
       return false;
     }
     final Uri initialRequestUri = Uri.parse(request.url().toString());
-    return KSUri.isHivequeenUri(initialRequestUri, this.endpoint) || KSUri.isStagingUri(initialRequestUri, this.endpoint);
+    return UriExt.isHivequeenUri(initialRequestUri, this.endpoint) || UriExt.isStagingUri(initialRequestUri, this.endpoint);
   }
 }

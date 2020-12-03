@@ -28,7 +28,6 @@ import com.kickstarter.models.QualtricsResult;
 import com.kickstarter.models.User;
 import com.kickstarter.services.ApiClientType;
 import com.kickstarter.services.DiscoveryParams;
-import com.kickstarter.services.KSUri;
 import com.kickstarter.services.WebClientType;
 import com.kickstarter.services.apiresponses.EmailVerificationEnvelope;
 import com.kickstarter.services.apiresponses.ErrorEnvelope;
@@ -218,7 +217,7 @@ public interface DiscoveryViewModel {
         .compose(combineLatestPair(currentConfig))
         .filter(it -> ConfigExtension.isFeatureFlagEnabled(it.second, ConfigExtension.EMAIL_VERIFICATION_FLOW))
         .map(it -> it.first)
-        .filter(KSUri::isVerificationEmailUrl);
+        .filter(UriExt::isVerificationEmailUrl);
 
       final Observable<Notification<EmailVerificationEnvelope>> verification = uriFromVerification
               .map(UriExt::getTokenFromQueryParams)

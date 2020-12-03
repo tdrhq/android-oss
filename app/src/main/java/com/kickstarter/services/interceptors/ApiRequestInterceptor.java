@@ -4,7 +4,7 @@ import android.net.Uri;
 
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.kickstarter.libs.CurrentUserType;
-import com.kickstarter.services.KSUri;
+import com.kickstarter.libs.utils.extensions.UriExt;
 
 import java.io.IOException;
 
@@ -54,6 +54,6 @@ public final class ApiRequestInterceptor implements Interceptor {
   }
 
   private boolean shouldIntercept(final @NonNull Request request) {
-    return KSUri.isApiUri(Uri.parse(request.url().toString()), this.endpoint);
+    return UriExt.isApiUri(Uri.parse(request.url().toString()), this.endpoint);
   }
 }

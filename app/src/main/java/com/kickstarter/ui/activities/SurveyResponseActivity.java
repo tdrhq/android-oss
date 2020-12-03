@@ -6,13 +6,12 @@ import android.webkit.WebView;
 import com.kickstarter.R;
 import com.kickstarter.libs.BaseActivity;
 import com.kickstarter.libs.qualifiers.RequiresActivityViewModel;
-import com.kickstarter.services.KSUri;
+import com.kickstarter.libs.utils.extensions.UriExt;
 import com.kickstarter.services.RequestHandler;
 import com.kickstarter.ui.views.KSWebView;
 import com.kickstarter.viewmodels.SurveyResponseViewModel;
 
 import java.util.Arrays;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -40,8 +39,8 @@ public class SurveyResponseActivity extends BaseActivity<SurveyResponseViewModel
 
     this.ksWebView.registerRequestHandlers(
       Arrays.asList(
-        new RequestHandler(KSUri::isProjectSurveyUri, this::handleProjectSurveyUriRequest),
-        new RequestHandler(KSUri::isProjectUri, this::handleProjectUriRequest)
+        new RequestHandler(UriExt::isProjectSurveyUri, this::handleProjectSurveyUriRequest),
+        new RequestHandler(UriExt::isProjectUri, this::handleProjectUriRequest)
       )
     );
 

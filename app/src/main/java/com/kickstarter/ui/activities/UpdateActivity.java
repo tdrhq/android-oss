@@ -13,8 +13,8 @@ import com.kickstarter.libs.RefTag;
 import com.kickstarter.libs.qualifiers.RequiresActivityViewModel;
 import com.kickstarter.libs.utils.ApplicationUtils;
 import com.kickstarter.libs.utils.NumberUtils;
+import com.kickstarter.libs.utils.extensions.UriExt;
 import com.kickstarter.models.Update;
-import com.kickstarter.services.KSUri;
 import com.kickstarter.services.RequestHandler;
 import com.kickstarter.ui.IntentKey;
 import com.kickstarter.ui.toolbars.KSToolbar;
@@ -57,9 +57,9 @@ public class UpdateActivity extends BaseActivity<UpdateViewModel.ViewModel> impl
     this.ksWebView.setDelegate(this);
     this.ksWebView.registerRequestHandlers(
       Arrays.asList(
-        new RequestHandler(KSUri::isProjectUpdateUri, this::handleProjectUpdateUriRequest),
-        new RequestHandler(KSUri::isProjectUpdateCommentsUri, this::handleProjectUpdateCommentsUriRequest),
-        new RequestHandler(KSUri::isProjectUri, this::handleProjectUriRequest)
+        new RequestHandler(UriExt::isProjectUpdateUri, this::handleProjectUpdateUriRequest),
+        new RequestHandler(UriExt::isProjectUpdateCommentsUri, this::handleProjectUpdateCommentsUriRequest),
+        new RequestHandler(UriExt::isProjectUri, this::handleProjectUriRequest)
       )
     );
 

@@ -10,7 +10,7 @@ import com.kickstarter.libs.RefTag;
 import com.kickstarter.libs.utils.ObjectUtils;
 import com.kickstarter.libs.utils.Secrets;
 import com.kickstarter.libs.utils.UrlUtils;
-import com.kickstarter.services.KSUri;
+import com.kickstarter.libs.utils.extensions.UriExt;
 import com.kickstarter.ui.activities.DeepLinkActivity;
 
 import androidx.annotation.NonNull;
@@ -53,15 +53,15 @@ public interface DeepLinkViewModel {
         .subscribe(__ -> koala.trackContinueUserActivityAndOpenedDeepLink());
 
       uriFromIntent
-        .filter(uri -> KSUri.isProjectUri(uri, Secrets.WebEndpoint.PRODUCTION))
-        .filter(uri -> !KSUri.isCheckoutUri(uri, Secrets.WebEndpoint.PRODUCTION))
-        .filter(uri -> !KSUri.isProjectPreviewUri(uri, Secrets.WebEndpoint.PRODUCTION))
+        .filter(uri -> UriExt.isProjectUri(uri, Secrets.WebEndpoint.PRODUCTION))
+        .filter(uri -> !UriExt.isCheckoutUri(uri, Secrets.WebEndpoint.PRODUCTION))
+        .filter(uri -> !UriExt.isProjectPreviewUri(uri, Secrets.WebEndpoint.PRODUCTION))
         .map(this::appendRefTagIfNone)
         .compose(bindToLifecycle())
         .subscribe(this.startProjectActivity::onNext);
 
       uriFromIntent
-        .filter(uri -> KSUri.isCheckoutUri(uri, Secrets.WebEndpoint.PRODUCTION))
+        .filter(uri -> UriExt.isCheckoutUri(uri, Secrets.WebEndpoint.PRODUCTION))
         .map(this::appendRefTagIfNone)
         .compose(bindToLifecycle())
         .subscribe(this.startProjectActivityWithCheckout::onNext);
@@ -70,12 +70,12 @@ public interface DeepLinkViewModel {
         .subscribe(__ -> koala.trackContinueUserActivityAndOpenedDeepLink());
 
       final Observable<Uri> projectPreview = uriFromIntent
-        .filter(uri -> KSUri.isProjectPreviewUri(uri, Secrets.WebEndpoint.PRODUCTION));
+        .filter(uri -> UriExt.isProjectPreviewUri(uri, Secrets.WebEndpoint.PRODUCTION));
 
       final Observable<Uri> unsupportedDeepLink = uriFromIntent
         .filter(uri -> !lastPathSegmentIsProjects(uri))
-        .filter(uri -> !KSUri.isCheckoutUri(uri, Secrets.WebEndpoint.PRODUCTION))
-        .filter(uri -> !KSUri.isProjectUri(uri, Secrets.WebEndpoint.PRODUCTION));
+        .filter(uri -> !UriExt.isCheckoutUri(uri, Secrets.WebEndpoint.PRODUCTION))
+        .filter(uri -> !UriExt.isProjectUri(uri, Secrets.WebEndpoint.PRODUCTION));
 
       Observable.merge(projectPreview, unsupportedDeepLink)
         .map(Uri::toString)
